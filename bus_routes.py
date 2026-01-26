@@ -1,9 +1,10 @@
 import math
 
-# =========================
-# Helper functions
-# =========================
+# HELPER FUNCTIONS
 def distance(a, b):
+    """
+    Calculate the approximate distance (in kilometers) between two GPS points a and b.
+    """
     lat_km = 111
     lon_km = 111 * math.cos(math.radians((a[0] + b[0]) / 2))
     return math.sqrt(
@@ -12,18 +13,15 @@ def distance(a, b):
     )
 
 def near(point, coords, km=1):
-    return any(distance(point, c) <= km for c in coords)
+    """
+    Check all bus stops in coords. If at least one stop is within km kilometers of point, return True.
+    """
+    for c in coords:
+      if distance(point, c) <= km:
+          return True
+    return False
 
-def shared_stop(route_a, route_b, km=1):
-    for a in route_a["coords"]:
-        for b in route_b["coords"]:
-            if distance(a, b) <= km:
-                return ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-    return None
-
-# =========================
-# Simplified Hanoi bus routes
-# =========================
+# HANOI BUS ROUTE DATA (taken and reformatted from https://busmaps.com/en/vietnam/The-World-Bank/hanoi-gtfs)
 BUS_ROUTES = [
   {
     "name": "Bus 01 – Yên Phụ – Long Biên – Gia Lâm",
@@ -168,40 +166,19 @@ BUS_ROUTES = [
 
 ]
 
-
-# =========================
-# MAIN MATCHING FUNCTION
-# =========================
+# FIND MATCHING BUS ROUTES
 def find_matching_bus_routes(start, end):
     results = []
 
     # Direct routes
     for r in BUS_ROUTES:
-        if near(start, r["coords"]) and near(end, r["coords"]):
+        if near(start, r["coords"]) and near(end, r["coords"]): # If any station in a bus route is near your starting point and destination
             results.append({
                 "type": "direct",
                 "routes": [r],
-                "transfer": None
             })
 
     if results:
         return results
-
-    # One-transfer routes
-    for r1 in BUS_ROUTES:
-        if not near(start, r1["coords"]):
-            continue
-
-        for r2 in BUS_ROUTES:
-            if r1 == r2 or not near(end, r2["coords"]):
-                continue
-
-            transfer = shared_stop(r1, r2)
-            if transfer:
-                results.append({
-                    "type": "transfer",
-                    "routes": [r1, r2],
-                    "transfer": transfer
-                })
 
     return results

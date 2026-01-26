@@ -156,56 +156,37 @@ ctk.CTkButton(
 
 
 # ROUTE BUILDING
-def prepare_routes(start_coords, end_coords):
+def prepare_routes(start, end):
     """
-    Build all possible routes (direct bus OR transfer bus routes)
-    and create buttons for the user to select them.
+    Build all possible routes
     """
-
-    # We modify global variables, so we must declare them
     global start_position, end_position
     global start_marker, end_marker
-    global all_routes
 
-    # --------------------------------
-    # 1️⃣ Reset old data
-    # --------------------------------
+    path_cache.clear()
+    all_routes.clear()
 
-    path_cache.clear()        # Clear saved paths
-    all_routes.clear()        # Remove old routes
+    start_position = start
+    end_position = end
 
-    start_position = start_coords
-    end_position = end_coords
-
-    # Clear everything drawn on the map
     map_widget.delete_all_path()
 
-    # Remove old route buttons
     for widget in routes_panel.winfo_children():
         widget.destroy()
 
-    # Remove old markers (if they exist)
     if start_marker:
         start_marker.delete()
     if end_marker:
         end_marker.delete()
 
-    # Add start & destination markers
-    start_marker = map_widget.set_marker(*start_coords, text="📍 Start")
-    end_marker = map_widget.set_marker(*end_coords, text="🏁 Destination")
+    start_marker = map_widget.set_marker(*start, text="📍 Start")
+    end_marker = map_widget.set_marker(*end, text="🏁 Destination")
 
-    # --------------------------------
-    # 2️⃣ Find matching bus routes
-    # --------------------------------
+    matches = find_matching_bus_routes(start, end)
 
-    matches = find_matching_bus_routes(start_coords, end_coords)
-
-    # --------------------------------
-    # 3️⃣ If NO bus routes → drive only
-    # --------------------------------
-
+    # No bus routes: set to driving
     if not matches:
-        car_path = get_cached_path(start_coords, end_coords, "driving")
+        car_path = get_cached_path(start, end, "driving")
 
         all_routes.append({
             "segments": [{
@@ -225,119 +206,73 @@ def prepare_routes(start_coords, end_coords):
         show_route(0)
         return
 
-    # --------------------------------
-    # 4️⃣ Handle BUS routes (direct OR transfer)
-    # --------------------------------
+    # Bus routes
+    for i, match in enumerate(matches):
+        bus = match["routes"][0]
 
-    for route_index, match in enumerate(matches):
+        color_index = i
+        while color_index >= len(BUS_ROUTE_COLORS):
+            color_index = color_index - len(BUS_ROUTE_COLORS)
 
-        buses = match["routes"]     # 1 bus (direct) or 2 buses (transfer)
-        transfer_point = match["transfer"]
+        bus_color = BUS_ROUTE_COLORS[color_index]
+        walk_color = WALK_ROUTE_COLORS[color_index]
 
-        bus_color = BUS_ROUTE_COLORS[route_index % len(BUS_ROUTE_COLORS)]
-        walk_color = WALK_ROUTE_COLORS[route_index % len(WALK_ROUTE_COLORS)]
+        start_index = find_closest_stop_index(start, bus["coords"])
+        end_index = find_closest_stop_index(end, bus["coords"])
 
-        segments = []               # All drawing pieces for this route
-        current_position = start_coords  # Where the user currently is
+        if start_index == end_index: # If closest start stop is the same as closest end stop, skip this route
+            continue
 
-        # --------------------------------
-        # 5️⃣ Loop through each bus
-        # --------------------------------
+        if start_index > end_index: # Direction check
+            start_index, end_index = end_index, start_index
+            bus_coords = list(reversed(bus["coords"][start_index:end_index + 1])) # Reverse the bus stops' orders if the passenger travels backwards
+        else:
+            bus_coords = bus["coords"][start_index:end_index + 1]
 
-        for bus_number, bus in enumerate(buses):
+        board = bus_coords[0] # The station where you get on the bus
+        alight = bus_coords[-1] # The station where you leave the bus
 
-            # Find closest stop to where we are now
-            start_stop_index = find_closest_stop_index(
-                current_position, bus["coords"]
-            )
+        segments = []
 
-            # Decide where to get off
-            if bus_number == len(buses) - 1:
-                # Last bus → get off near destination
-                end_stop_index = find_closest_stop_index(
-                    end_coords, bus["coords"]
-                )
-            else:
-                # Transfer bus → get off near transfer point
-                end_stop_index = find_closest_stop_index(
-                    transfer_point, bus["coords"]
-                )
-
-            # Ignore broken routes
-            if start_stop_index == end_stop_index:
-                continue
-
-            # Make sure stops are in correct order
-            if start_stop_index > end_stop_index:
-                bus_stops = list(
-                    reversed(bus["coords"][end_stop_index:start_stop_index + 1])
-                )
-            else:
-                bus_stops = bus["coords"][start_stop_index:end_stop_index + 1]
-
-            board_stop = bus_stops[0]
-            alight_stop = bus_stops[-1]
-
-            # --------------------------------
-            # 6️⃣ Walk to the bus stop
-            # --------------------------------
-
-            segments.append({
-                "path": get_cached_path(current_position, board_stop, "foot"),
-                "color": walk_color,
-                "width": 3
-            })
-
-            # --------------------------------
-            # 7️⃣ Ride the bus
-            # --------------------------------
-
-            for a, b in zip(bus_stops, bus_stops[1:]):
-                segments.append({
-                    "path": get_cached_path(a, b, "driving"),
-                    "color": bus_color,
-                    "width": 5
-                })
-
-            # Move forward in the journey
-            current_position = alight_stop
-
-        # --------------------------------
-        # 8️⃣ Final walk to destination
-        # --------------------------------
-
-        segments.append({
-            "path": get_cached_path(current_position, end_coords, "foot"),
+        segments.append({ # Path from your starting point to boarding station
+            "path": get_cached_path(start, board, "foot"),
             "color": walk_color,
             "width": 3
         })
 
-        # Save this route
-        all_routes.append({
-            "segments": segments
+        for i in range(len(bus_coords) - 1): # For each pair of adjacent bus stops, draw a bus route segment between them.
+            a = bus_coords[i]
+            b = bus_coords[i + 1]
+
+            segments.append({
+                "path": get_cached_path(a, b, "driving"),
+                "color": bus_color,
+                "width": 5
+            })
+
+        segments.append({ # Path from leaving station to your destination
+            "path": get_cached_path(alight, end, "foot"),
+            "color": walk_color,
+            "width": 3
         })
 
-        # --------------------------------
-        # 9️⃣ Create route button
-        # --------------------------------
+        all_routes.append({ # Connect all the paths' segments together
+            "segments": segments,
+            "board": board,
+            "alight": alight
+        })
 
-        if match["type"] == "transfer":
-            button_text = (
-                f"🔁 {buses[0]['name']} → {buses[1]['name']}"
-            )
-        else:
-            button_text = f"🚍 {buses[0]['name']}"
+        route_index = len(all_routes) - 1
 
         ctk.CTkButton(
             routes_panel,
-            text=button_text,
+            text=f"🚍 {bus['name']}\n⏱ {bus['time']}   💰 {bus['price']}",
             command=lambda i=route_index: show_route(i),
             anchor="w"
         ).pack(fill="x", pady=6)
 
-# ==================================================
-# Route display
-# ==================================================
+
+# DISPLAY ROUTE ON MAP
 def show_route(index):
     """
     Draw selected route on map
@@ -353,18 +288,18 @@ def show_route(index):
 
     route = all_routes[index]
 
-    # 1️⃣ Draw WALKING paths first (background)
+    # Draw walking paths first
     for segment in route["segments"]:
-        if segment["width"] == 3:  # walking paths
+        if segment["width"] == 3:
             map_widget.set_path(
                 segment["path"],
                 width=segment["width"],
                 color=segment["color"]
             )
 
-    # 2️⃣ Draw BUS paths last (on top)
+    # Draw bus paths second
     for segment in route["segments"]:
-        if segment["width"] == 5:  # bus paths
+        if segment["width"] == 5:
             map_widget.set_path(
                 segment["path"],
                 width=segment["width"],
@@ -375,7 +310,6 @@ def show_route(index):
         board_marker = map_widget.set_marker(*route["board"], text="🟢 Lên xe")
         alight_marker = map_widget.set_marker(*route["alight"], text="🔴 Xuống xe")
 
-# ==================================================
-# Start app
-# ==================================================
+
+# START APP
 app.mainloop()
