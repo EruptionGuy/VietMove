@@ -1,5 +1,7 @@
+import os
 import customtkinter as ctk
 from tkintermapview import TkinterMapView
+from PIL import ImageTk, Image
 from geopy.geocoders import Nominatim
 import requests
 
@@ -42,7 +44,6 @@ LOCATIONS = {
     "Hồ Hoàn Kiếm": (21.028866, 105.834708),
     "Nhà hát Lớn": (21.0245, 105.8570),
     "Nhà thờ Lớn": (21.0286457, 105.8488365),
-    "Phố cổ Hà Nội": (21.0333, 105.8500),
     "Ga Hà Nội": (21.019377, 105.837823),
     "Lăng Bác": (21.0368, 105.8342),
     "Quảng trường Ba Đình": (21.0363, 105.8346),
@@ -156,6 +157,7 @@ def update_eco_message(bus_co2, car_co2):
 app = ctk.CTk()
 app.title("VietMove")
 app.geometry("1200x720")
+app.iconphoto(False, ImageTk.PhotoImage(file=os.path.join("app-icon.png")))
 
 app.grid_columnconfigure(0, weight=0)
 app.grid_columnconfigure(1, weight=1)

@@ -7,7 +7,8 @@
       "fg_color": ["#1e1e1e", "#1e1e1e"],
       "border_color": ["#2a2a2a", "#2a2a2a"],
       "border_width": 0,
-      "corner_radius": 0
+      "corner_radius": 0,
+      "top_fg_color": ["transparent"]
     },
   
     "CTkLabel": {
