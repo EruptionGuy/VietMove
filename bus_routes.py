@@ -25,9 +25,7 @@ def near(point, coords, km=1):
 BUS_ROUTES = [
   {
     "name": "Bus 01 – Yên Phụ – Long Biên – Gia Lâm",
-    "route_ref": "01",
     "price": "9.000đ",
-    "time": "~30 phút",
     "coords": [
       [21.037449, 105.846857],  # Yên Phụ
       [21.033600, 105.847000],  # Quán Thánh
@@ -48,9 +46,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 02 – Bưởi – Kim Mã – Giáp Bát",
-    "route_ref": "02",
     "price": "12.000đ",
-    "time": "~40 phút",
     "coords": [
       [21.060200, 105.812800],  # Bưởi
       [21.048900, 105.820300],  # Thụy Khuê
@@ -66,9 +62,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 08 – Đông Anh – Long Biên – Hoàn Kiếm",
-    "route_ref": "08",
     "price": "9.000đ",
-    "time": "~45 phút",
     "coords": [
       [21.091200, 105.806500],  # Đông Anh
       [21.075800, 105.825600],  # Bắc Thăng Long
@@ -81,9 +75,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 12 – Hoàn Kiếm – Kim Mã – Hà Đông",
-    "route_ref": "12",
     "price": "12.000đ",
-    "time": "~50 phút",
     "coords": [
       [21.028866, 105.834708],  # Hoàn Kiếm
       [21.033600, 105.814200],  # Kim Mã
@@ -96,9 +88,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 18 – Xuân Thủy (ĐHQG) – Kim Mã – Hoàn Kiếm",
-    "route_ref": "18",
     "price": "12.000đ",
-    "time": "~50 phút",
     "coords": [
       [21.038100, 105.782300],  # Xuân Thủy (ĐHQG)
       [21.033600, 105.814200],  # Kim Mã
@@ -109,9 +99,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 20 – Gia Lâm – Long Biên – Cầu Giấy",
-    "route_ref": "20",
     "price": "12.000đ",
-    "time": "~55 phút",
     "coords": [
       [21.0482298, 105.8784425], # Gia Lâm
       [21.035800, 105.857500],  # Long Biên
@@ -123,9 +111,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 30 – Linh Đàm – Hoàn Kiếm – Cầu Giấy",
-    "route_ref": "30",
     "price": "9.000đ",
-    "time": "~50 phút",
     "coords": [
       [20.971800, 105.839700],  # Linh Đàm
       [21.0049790, 105.8411961],# Bách Khoa
@@ -138,9 +124,7 @@ BUS_ROUTES = [
 
   {
     "name": "Bus 38 – Nam Thăng Long – Kim Mã – Mai Động",
-    "route_ref": "38",
     "price": "12.000đ",
-    "time": "~55 phút",
     "coords": [
       [21.060200, 105.812800],  # Nam Thăng Long
       [21.048900, 105.820300],  # Thụy Khuê
@@ -152,9 +136,7 @@ BUS_ROUTES = [
 
   {
     "name": "BRT 01 – Kim Mã – Yên Nghĩa",
-    "route_ref": "BRT01",
     "price": "15.000đ",
-    "time": "~35 phút",
     "coords": [
       [21.033600, 105.814200],  # Kim Mã
       [21.020500, 105.801100],  # Láng Hạ
