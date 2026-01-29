@@ -1,8 +1,6 @@
 # VietMove – Smart Transit Planner  
 **Bảng B2: Dự án sử dụng Python**
 
----
-
 ## 1. Giới thiệu dự án
 
 **VietMove** là một ứng dụng Python hỗ trợ người dùng tra cứu lộ trình di chuyển
@@ -15,7 +13,6 @@ Dự án hướng tới chủ đề **“Việt Nam vươn mình”** và **phá
 khuyến khích sử dụng giao thông công cộng thông qua việc hiển thị lượng **CO₂
 có thể giảm được khi chọn xe buýt thay vì ô tô**.
 
----
 
 ## 2. Yêu cầu môi trường
 
@@ -23,7 +20,6 @@ có thể giảm được khi chọn xe buýt thay vì ô tô**.
 - **Hệ điều hành:** Windows / macOS / Linux
 - **Internet:** Bắt buộc (dùng bản đồ & định tuyến)
 
----
 
 ## 3. Thư viện sử dụng
 
@@ -35,7 +31,6 @@ Các thư viện ngoài được dùng trong dự án:
 - `geopy`
 - `requests`
 
----
 
 ## 4. Cài đặt thư viện
 
@@ -55,7 +50,6 @@ Hoặc cài đặt tất cả cùng lúc:
 pip install customtkinter tkintermapview pillow geopy requests
 ```
 
----
 
 ## 5. Cấu trúc thư mục
 
@@ -69,7 +63,6 @@ vietmove/
 └── README.md        # Hướng dẫn sử dụng
 ```
 
----
 
 ## 6. Cách chạy chương trình
 
@@ -85,8 +78,6 @@ Hoặc (macOS / Linux):
 python3 main.py
 ```
 
----
-
 ## 7. Hướng dẫn sử dụng
 
 1. Chọn **điểm xuất phát** và **điểm đến** từ danh sách.
@@ -97,7 +88,6 @@ python3 main.py
    - ↔️ Khoảng cách  
    - 🌱 Lượng CO₂ phát thải / tiết kiệm  
 
----
 
 ## 8. Ý nghĩa dự án
 
