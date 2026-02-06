@@ -1,72 +1,56 @@
 # VietMove – Smart Transit Planner  
 **Bảng B2: Dự án sử dụng Python**
 
-## 1. Giới thiệu dự án
+## 1. Giới thiệu
 
-**VietMove** là một ứng dụng Python hỗ trợ người dùng tra cứu lộ trình di chuyển
-tại **Hà Nội** bằng các hình thức:
-- 🚍 Xe buýt  
-- 🚶‍♂️ Đi bộ  
-- 🚗 Ô tô  
+**VietMove** là ứng dụng Python hỗ trợ tìm lộ trình di chuyển tại **Hà Nội** bằng
+giao thông công cộng, kết hợp việc việc so sánh với ô tô cá nhân.
+Ứng dụng giúp người dùng:
+- Tìm tuyến xe buýt, tàu điện phù hợp
+- Ước lượng thời gian, chi phí
+- Hiển thị lượng **CO₂ tiết kiệm được** khi dùng giao thông công cộng
 
-Dự án hướng tới chủ đề **“Việt Nam vươn mình”** và **phát triển bền vững**,
-khuyến khích sử dụng giao thông công cộng thông qua việc hiển thị lượng **CO₂
-có thể giảm được khi chọn xe buýt thay vì ô tô**.
+Dự án hướng tới chủ đề **"Việt Nam vươn mình"** và phát triển bền vững.
 
+## 2. Yêu cầu cài đặt
 
-## 2. Yêu cầu môi trường
+### 2.1. Phần mềm & nền tảng
 
 - **Python:** phiên bản **3.10 trở lên**
 - **Hệ điều hành:** Windows / macOS / Linux
-- **Internet:** Bắt buộc (dùng bản đồ & định tuyến)
+- **Internet:** Bắt buộc (dùng bản đồ và định tuyến)
 
+### 2.2. Thư viện Python sử dụng
 
-## 3. Thư viện sử dụng
+- `customtkinter` – Giao diện người dùng
+- `tkintermapview` – Hiển thị bản đồ
+- `Pillow` – Xử lý hình ảnh
+- `geopy` – Chuyển đổi địa chỉ ↔ tọa độ
+- `requests` – Gọi API định tuyến
 
-Các thư viện ngoài được dùng trong dự án:
+## 3. Cài đặt thư viện
 
-- `customtkinter`
-- `tkintermapview`
-- `Pillow`
-- `geopy`
-- `requests`
-
-
-## 4. Cài đặt thư viện
-
-Mở Terminal (hoặc Command Prompt), di chuyển đến thư mục dự án và chạy:
-
-```bash
-pip install customtkinter
-pip install tkintermapview
-pip install pillow
-pip install geopy
-pip install requests
-```
-
-Hoặc cài đặt tất cả cùng lúc:
+Mở Terminal / Command Prompt, di chuyển đến thư mục dự án và chạy:
 
 ```bash
 pip install customtkinter tkintermapview pillow geopy requests
-```
+````
 
-
-## 5. Cấu trúc thư mục
+## 4. Cấu trúc thư mục
 
 ```text
 vietmove/
 │
-├── main.py          # File chính chạy chương trình
-├── bus_routes.py    # Dữ liệu & xử lý tuyến xe buýt
+├── main.py          # File chính chạy ứng dụng
+├── bus_routes.py    # Dữ liệu & thuật toán tìm tuyến xe buýt
 ├── theme.json       # Giao diện CustomTkinter
-├── app-icon.png     # Logo ứng dụng
+├── app-icon.png     # Biểu tượng ứng dụng
 └── README.md        # Hướng dẫn sử dụng
 ```
 
+## 5. Cách chạy chương trình
 
-## 6. Cách chạy chương trình
-
-Tại thư mục chứa `main.py`, chạy:
+Tại thư mục chứa file `main.py`, chạy:
 
 ```bash
 python main.py
@@ -78,21 +62,27 @@ Hoặc (macOS / Linux):
 python3 main.py
 ```
 
-## 7. Hướng dẫn sử dụng
+Sau khi chạy, cửa sổ ứng dụng VietMove sẽ xuất hiện.
 
-1. Chọn **điểm xuất phát** và **điểm đến** từ danh sách.
-2. Nhấn nút **“Tìm lộ trình”**.
-3. Chọn tuyến xe buýt hoặc ô tô trong danh sách hiển thị.
-4. Xem thông tin chi tiết:
-   - ⏱️ Thời gian di chuyển  
-   - ↔️ Khoảng cách  
-   - 🌱 Lượng CO₂ phát thải / tiết kiệm  
+## 6. Hướng dẫn thao tác cơ bản
+
+1. Nhập **điểm bắt đầu** vào ô “Bạn đang ở đâu?”
+2. Nhập **điểm đến** vào ô “Bạn muốn đi đâu?”
+3. Nhấn nút **“Tìm lộ trình”**
+4. Ứng dụng sẽ hiển thị:
+
+   * Tuyến xe buýt, tàu điện, ô tô phù hợp trên bản đồ
+   * Đường đi bộ đến bến xe
+   * ⏱️ Thời gian di chuyển ước tính
+   * 💰 Giá vé
+   * 🌱 Lượng CO₂ tiết kiệm được so với đi ô tô
 
 
-## 8. Ý nghĩa dự án
+## 7. Ý nghĩa và mục tiêu
 
-VietMove góp phần:
-- Khuyến khích sử dụng giao thông công cộng
-- Giảm ùn tắc giao thông
-- Giảm phát thải CO₂
-- Hướng tới một **Việt Nam xanh và phát triển bền vững**
+VietMove giúp người dùng:
+
+* Dễ tiếp cận giao thông công cộng
+* Giảm phụ thuộc vào xe máy, ô tô cá nhân
+* Giảm phát thải CO₂ và ô nhiễm không khí
+* Góp phần xây dựng **đô thị xanh – giao thông bền vững** tại Việt Nam
