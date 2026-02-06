@@ -155,7 +155,7 @@ def update_eco_message(bus_co2, car_co2):
 
 # USER INTERFACE
 app = ctk.CTk()
-app.title("VietMove")
+app.title("VietMove – Smart Transit Planner")
 app.geometry("1200x720")
 app.iconphoto(False, ImageTk.PhotoImage(file=os.path.join("app-icon.png")))
 
