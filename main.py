@@ -5,12 +5,12 @@ from PIL import ImageTk, Image
 from geopy.geocoders import Nominatim
 import requests
 
-from bus_routes import find_matching_bus_routes, distance
+from bus_routes import find_matching_bus_and_metro_routes, distance
 
 # APP APPEARANCE
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("theme.json")
-BUS_ROUTE_COLORS = ["#1f6aff", "#2ecc71", "#e67e22", "#9b59b6", "#e74c3c"]
+BUS_AND_METRO_ROUTE_COLORS = ["#1f6aff", "#2ecc71", "#e67e22", "#9b59b6", "#e74c3c"]
 WALK_ROUTE_COLORS = ["#0f3c99", "#1f8f4d", "#a3541c", "#6a3b85", "#992d22"]
 
 
@@ -19,7 +19,7 @@ geolocator = Nominatim(user_agent="vietmove_app", timeout=10)
 
 
 # VARIABLES
-all_bus_routes = []
+all_bus_and_metro_routes = []
 car_route = None
 
 start_position = None
@@ -34,49 +34,97 @@ path_cache = {}
 
 WALK_SPEED = 5 # km/h
 CAR_SPEED = 25 # km/h
-BUS_SPEED  = 20 # km/h
+BUS_SPEED  = 25 # km/h
+METRO_SPEED = 35 # km/h
 
 CAR_CO2 = 0.192 # kg CO2/km
 BUS_CO2 = 0.082 # kg CO2/km
+METRO_CO2 = 0.035 # kg CO2/km
 
 # LOCATIONS
 LOCATIONS = {
-    "Hồ Hoàn Kiếm": (21.030664, 105.853282),
-    "Nhà hát Lớn": (21.0245, 105.8570),
-    "Nhà thờ Lớn": (21.0286457, 105.8488365),
-    "Ga Hà Nội": (21.019377, 105.837823),
-    "Lăng Bác": (21.0368, 105.8342),
-    "Quảng trường Ba Đình": (21.0363, 105.8346),
-    "Kim Mã": (21.0336, 105.8142),
-    "Giảng Võ": (21.0264, 105.8080),
-    "Văn Miếu": (21.0258, 105.8413),
-    "Xã Đàn": (21.0161, 105.8281),
-    "Láng Hạ": (21.0205, 105.8011),
-    "Bách Khoa": (21.004979, 105.841196),
-    "Bạch Mai": (21.010567, 105.824891),
-    "Đại La": (21.01135, 105.825174),
-    "Hồ Tây": (21.0585, 105.8315),
-    "Xuân Diệu": (21.0547, 105.8296),
-    "Thụy Khuê": (21.0489, 105.8203),
-    "Cầu Giấy": (21.0381, 105.7823),
-    "Xuân Thủy (ĐHQG)": (21.0381, 105.7823),
-    "Khuất Duy Tiến": (21.0124, 105.7905),
-    "Ngã Tư Sở": (21.0032, 105.8070),
-    "Long Biên": (21.0358, 105.8575),
+    # Central / Old Quarter
+    "Hồ Hoàn Kiếm": (21.031869, 105.851646),
+    "Đền Ngọc Sơn": (21.030758, 105.852547),
+    "Nhà hát Lớn Hà Nội": (21.024324, 105.857616),
+    "Nhà thờ Lớn Hà Nội": (21.028786, 105.848834),
+    "Phố Tràng Tiền": (21.024800, 105.855568),
+
+    # Stations & Interchanges
+    "Ga Hà Nội": (21.023954, 105.841534),
+    "Ga Cát Linh (Metro 2A)": (21.028355, 105.827262),
+    "Ga Kim Mã (Metro 3)": (21.030564, 105.816305),
+    "Ga Cầu Giấy (Metro 3)": (21.029272, 105.803211),
+    "Ga Văn Miếu (Metro 3)": (21.027940, 105.833820),
+
+    # Ba Đình
+    "Lăng Chủ tịch Hồ Chí Minh": (21.036856, 105.834690),
+    "Quảng trường Ba Đình": (21.037245, 105.836317),
+    "Phủ Chủ tịch": (21.039394, 105.835059),
+    "Công viên Lênin": (21.031265, 105.839447),
+
+    # Parks & Green Spaces
+    "Công viên Thống Nhất": (21.016960, 105.844346),
+    "Vườn Bách Thảo": (21.041221, 105.830287),
+    "Công viên Cầu Giấy": (21.028326, 105.790851),
+    "Công viên Nghĩa Đô": (21.040581, 105.796479),
+    "Vườn hoa Hoàng Cầu": (21.016792, 105.821007),
+    "Vườn hoa Lý Thái Tổ": (21.027523, 105.854235),
+    "Công viên Long Biên": (21.060986, 105.904675),
+
+    # West / Inner West
+    "Phố Kim Mã": (21.030703, 105.817295),
+    "Phố Giảng Võ": (21.028056, 105.825308),
+    "Phố Láng Hạ": (21.017048, 105.815421),
+    "Ngã Tư Sở": (21.003133, 105.820775),
+
+    # Education – Universities
+    "ĐH Bách Khoa Hà Nội": (21.005092, 105.841546),
+    "ĐH Kinh tế Quốc dân": (21.000055, 105.842498),
+    "ĐH Xây dựng Hà Nội": (21.003314, 105.843477),
+    "ĐH Ngoại thương": (21.023039, 105.805449),
+    "ĐH Giao thông Vận tải": (21.028155, 105.803404),
+    "ĐHQG Hà Nội (Xuân Thủy)": (21.036692, 105.782461),
+
+    # Education – Schools
+    "THPT Chu Văn An": (21.043133, 105.832555),
+    "THPT Việt Đức": (21.023516, 105.849321),
+    "THPT Kim Liên": (21.010933, 105.831671),
     "Wellspring Hanoi": (21.039228, 105.873798),
-    "Ngọc Thụy": (21.0409, 105.8651),
-    "Đức Giang": (21.0423, 105.8691),
-    "Bến xe Gia Lâm": (21.0482298, 105.8784425),
-    "Gia Lâm": (21.0482, 105.8784),
-    "Mai Động": (21.005167, 105.841360),
-    "Giáp Bát": (20.9904, 105.8427),
-    "Linh Đàm": (20.9718, 105.8397),
-    "Hà Đông": (21.0032, 105.7688),
-    "Yên Nghĩa": (20.9982, 105.7466),
-    "Nam Thăng Long": (21.0602, 105.8128),
-    "Nhật Tân": (21.0564, 105.8423),
-    "Đông Anh": (21.0912, 105.8065)
+    "Hanoi International School": (21.033734, 105.813524),
+    "UNIS Hanoi": (21.074986, 105.809079),
+    "Vietnam-Australia School": (21.032664, 105.763099),
+
+    # South
+    "Phố Xã Đàn": (21.012908, 105.835491),
+    "Phố Đại La": (20.996640, 105.846256),
+    "Phố Bạch Mai": (21.002220, 105.850828),
+    "Phố Mai Động": (20.989237, 105.861325),
+    "Phố Giáp Bát": (20.985253, 105.843581),
+    "Phố Linh Đàm": (20.964956, 105.824845),
+    "Times City": (20.997991, 105.867556),
+
+    # Hà Đông / Southwest
+    "Ga Hà Đông": (20.970218, 105.774964),
+    "Ga Văn Quán": (20.977714, 105.784800),
+    "Ga Phùng Khoang": (20.984283, 105.793053),
+    "Ga Yên Nghĩa": (20.998200, 105.746600),
+
+    # West Lake / North
+    "Sheraton Hanoi Hotel": (21.060230, 105.830855),
+    "Đường Xuân Diệu": (21.064393, 105.828152),
+    "Đường Thụy Khuê": (21.043413, 105.821139),
+    "Lotte Mall Tây Hồ": (21.076277, 105.811735),
+
+    # Long Biên / East
+    "Bến xe Long Biên": (21.041237, 105.849587),
+    "Aeon Mall Long Biên": (21.027474, 105.898980),
+    "Đường Long Biên": (21.040900, 105.865100),
+    "Đường Ngô Gia Tự": (21.065769, 105.898262),
+    "Đường Nguyễn Văn Cừ": (21.046488, 105.877367),
+    "Bến xe Gia Lâm": (21.048230, 105.878443),
 }
+
 
 # HELPER FUNCTIONS
 def fetch_path(start, end, mode):
@@ -113,7 +161,7 @@ def get_cached_path(start, end, mode):
 
 def find_closest_stop_index(point, stops):
     """
-    Find the nearest bus stop using simple distance
+    Find the nearest stop using simple distance
     """
     closest_index = 0
     smallest_distance = float("inf") # Sets initial value to infinity to guarantee that the first real distance will be smaller
@@ -136,12 +184,16 @@ def estimate_time(distance, mode):
         return distance / BUS_SPEED * 60
     elif mode == "car":
         return distance / CAR_SPEED * 60
+    elif mode == "metro":
+        return distance / METRO_SPEED * 60
     
 def estimate_co2(distance, mode):
     if mode == "bus":
         return BUS_CO2 * distance
     elif mode == "car":
         return CAR_CO2 * distance
+    elif mode == "metro":
+        return METRO_CO2 * distance
 
 def update_eco_message(bus_co2, car_co2):
     saved = max(car_co2 - bus_co2, 0)
@@ -263,8 +315,8 @@ def prepare_routes(start, end):
     """
     global start_position, end_position, start_marker, end_marker, car_route
 
-    path_cache.clear()
-    all_bus_routes.clear()
+    # path_cache.clear()
+    all_bus_and_metro_routes.clear()
 
     start_position = start
     end_position = end
@@ -282,122 +334,162 @@ def prepare_routes(start, end):
     start_marker = map_widget.set_marker(*start, text="📍 Start")
     end_marker = map_widget.set_marker(*end, text="🏁 Destination")
 
-    matches = find_matching_bus_routes(start, end)
+    matches = find_matching_bus_and_metro_routes(start, end)
 
-    # Bus routes
-    best_bus_co2 = float("inf")
+    # Bus and metro routes
+    best_co2 = float("inf")
+
     for i, match in enumerate(matches):
-        bus = match["routes"][0]
+        bus_and_metro = match["routes"][0]
 
         color_index = i
-        while color_index >= len(BUS_ROUTE_COLORS):
-            color_index = color_index - len(BUS_ROUTE_COLORS)
+        while color_index >= len(BUS_AND_METRO_ROUTE_COLORS):
+            color_index = color_index - len(BUS_AND_METRO_ROUTE_COLORS)
 
-        bus_color = BUS_ROUTE_COLORS[color_index]
+        bus_and_metro_color = BUS_AND_METRO_ROUTE_COLORS[color_index]
         walk_color = WALK_ROUTE_COLORS[color_index]
 
-        start_index = find_closest_stop_index(start, bus["coords"])
-        end_index = find_closest_stop_index(end, bus["coords"])
+        start_index = find_closest_stop_index(start, bus_and_metro["coords"])
+        end_index = find_closest_stop_index(end, bus_and_metro["coords"])
 
-        if start_index == end_index: # If closest start stop is the same as closest end stop, skip this route
+        if start_index == end_index:  # If closest start stop is the same as closest end stop, skip this route
             continue
 
-        if start_index > end_index: # Direction check
+        if start_index > end_index:  # Direction check
             start_index, end_index = end_index, start_index
-            bus_coords = list(reversed(bus["coords"][start_index:end_index + 1])) # Reverse the bus stops' orders if the passenger travels backwards
+            bus_and_metro_coords = list(
+                reversed(bus_and_metro["coords"][start_index:end_index + 1])
+            )  # Reverse the stops' orders if the passenger travels backwards
         else:
-            bus_coords = bus["coords"][start_index:end_index + 1]
+            bus_and_metro_coords = bus_and_metro["coords"][start_index:end_index + 1]
 
-        board = bus_coords[0] # The station where you get on the bus
-        alight = bus_coords[-1] # The station where you leave the bus
+        board = bus_and_metro_coords[0]   # The station where you get on the bus/metro
+        alight = bus_and_metro_coords[-1] # The station where you leave the bus/metro
 
         total_distance = 0
         total_time = 0
         total_co2 = 0
-        if total_co2 < best_bus_co2:
-            best_bus_co2 = total_co2
 
         segments = []
 
-        segments.append({ # Path from your starting point to boarding station
+        segments.append({  # Path from your starting point to boarding station
             "path": get_cached_path(start, board, "foot"),
             "color": walk_color,
             "width": 3
         })
-        total_distance+= distance(start, board)
-        total_time+= estimate_time(distance(start, board), "walk")
+        total_distance += distance(start, board)
+        total_time += estimate_time(distance(start, board), "walk")
 
-        for i in range(len(bus_coords) - 1): # For each pair of adjacent bus stops, draw a bus route segment between them.
-            a = bus_coords[i]
-            b = bus_coords[i + 1]
-            total_distance+= distance(a, b)
-            total_time+= estimate_time(distance(a, b), "bus")
-            total_co2+= estimate_co2(distance(a, b), "bus")
+        for i in range(len(bus_and_metro_coords) - 1):  # For each pair of adjacent bus/metro stops
+            a = bus_and_metro_coords[i]
+            b = bus_and_metro_coords[i + 1]
 
-            segments.append({
-                "path": get_cached_path(a, b, "driving"),
-                "color": bus_color,
-                "width": 5
-            })
+            d = distance(a, b)
+            total_distance += d
+            total_time += estimate_time(d, bus_and_metro["type"])
+            total_co2 += estimate_co2(d, bus_and_metro["type"])
 
-        segments.append({ # Path from leaving station to your destination
+            if bus_and_metro["type"] == "bus":
+                segments.append({
+                    "path": get_cached_path(a, b, "driving"),
+                    "color": bus_and_metro_color,
+                    "width": 5
+                })
+            elif bus_and_metro["type"] == "metro":
+                segments.append({
+                    "path": [a, b],  # Draw straight paths between metro stations since OSRM does not support 'metro' mode
+                    "color": bus_and_metro_color,
+                    "width": 5
+                })
+
+        segments.append({  # Path from leaving station to your destination
             "path": get_cached_path(alight, end, "foot"),
             "color": walk_color,
             "width": 3
         })
-        total_distance+= distance(alight, end)
-        total_time+= estimate_time(distance(alight, end), "walk")
+        total_distance += distance(alight, end)
+        total_time += estimate_time(distance(alight, end), "walk")
 
-        all_bus_routes.append({ # Connect all the paths' segments together
+        # Update best CO2
+        best_co2 = min(best_co2, total_co2)
+
+        all_bus_and_metro_routes.append({  # Connect all the paths' segments together
             "segments": segments,
             "board": board,
             "alight": alight
         })
 
-        route_index = len(all_bus_routes) - 1
+        route_index = len(all_bus_and_metro_routes) - 1
 
+        emoji = "🚍" if bus_and_metro["type"] == "bus" else "🚇"
         ctk.CTkButton(
             routes_panel,
-            text=f"🚍 {bus['name']}\n⏱️ {round(total_time, 1)} phút   💰 {bus['price']}   ↔️ {round(total_distance, 1)} km   🏭 {round(total_co2, 2)} kg CO2",
-            command=lambda id=route_index: show_bus_route(id),
+            text=f"{emoji} {bus_and_metro['name']}\n"
+                f"⏱️ {round(total_time, 1)} phút   "
+                f"💰 {bus_and_metro['price']}   "
+                f"↔️ {round(total_distance, 1)} km   "
+                f"🏭 {round(total_co2, 2)} kg CO2",
+            command=lambda id=route_index: show_bus_and_metro_route(id),
             anchor="w",
             height=54
         ).pack(fill="x", pady=6)
-    
-    # Driving
-    total_distance = 0
-    total_time = 0
-    total_co2 = 0
-    car_path = get_cached_path(start, end, "driving")
 
-    car_route = {
-        "segments": [{
-            "path": car_path,
-            "color": "#f1c40f",
-            "width": 5
-        }]
-    }
-    total_distance+= distance(start, end)
-    total_time+= estimate_time(distance(start, end), "car")
-    total_co2+= estimate_co2(distance(start, end), "car")
+    # Driving or walking (if start and destination are close together)
+    car_distance = distance(start, end)
+    car_co2 = estimate_co2(car_distance, "car")
 
-    if best_bus_co2 < float("inf"):
-        update_eco_message(best_bus_co2, total_co2)
+    if car_distance < 3:
+        car_time = estimate_time(car_distance, "walk")
+
+        car_route = {
+            "segments": [{
+                "path": get_cached_path(start, end, "foot"),
+                "color": "#069494",
+                "width": 5
+            }]
+        }
+
+        ctk.CTkButton(
+            routes_panel,
+            text=f"🚶‍♂️ Đi bộ\n⏱️ {round(car_time, 1)} phút   ↔️ {round(car_distance, 1)} km",
+            command=show_car_route,
+            anchor="w"
+        ).pack(fill="x", pady=6)
+    else:
+        car_time = estimate_time(car_distance, "car")
+
+        car_route = {
+            "segments": [{
+                "path": get_cached_path(start, end, "driving"),
+                "color": "#f1c40f",
+                "width": 5
+            }]
+        }
+
+        ctk.CTkButton(
+            routes_panel,
+            text=f"🚗 Ôtô\n⏱️ {round(car_time, 1)} phút   ↔️ {round(car_distance, 1)} km   "
+                f"🏭 {round(car_co2, 2)} kg CO2",
+            command=show_car_route,
+            anchor="w"
+        ).pack(fill="x", pady=6)
+
+    # Environmental message
+    if best_co2 < float("inf"):
+        update_eco_message(best_co2, car_co2)
     else:
         eco_label.configure(
             text="🌍 Xe buýt giúp giảm ùn tắc và phát thải.\nHãy chọn giao thông công cộng khi có thể."
         )
 
-    ctk.CTkButton(
-        routes_panel,
-        text=f"🚗 Ôtô\n⏱️ {round(total_time, 1)} phút   ↔️ {round(total_distance, 1)} km   🏭 {round(total_co2, 2)} kg CO2",
-        command=lambda: show_car_route(),
-        anchor="w"
-    ).pack(fill="x", pady=6)
+    # Fit bounding box
+    map_widget.set_position(start[0], start[1])
+    map_widget.set_zoom(15)
+
 
 
 # DISPLAY ROUTE ON MAP
-def show_bus_route(index):
+def show_bus_and_metro_route(index):
     """
     Draw selected route on map
     """
@@ -410,7 +502,7 @@ def show_bus_route(index):
     if alight_marker:
         alight_marker.delete()
 
-    route = all_bus_routes[index]
+    route = all_bus_and_metro_routes[index]
 
     # Draw walking paths first
     for segment in route["segments"]:
@@ -421,7 +513,7 @@ def show_bus_route(index):
                 color=segment["color"]
             )
 
-    # Draw bus paths second
+    # Draw bus/metro paths second
     for segment in route["segments"]:
         if segment["width"] == 5:
             map_widget.set_path(
