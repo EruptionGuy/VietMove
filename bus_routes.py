@@ -113,7 +113,7 @@ BUS_AND_METRO_ROUTES = [
   },
 
   {
-    "name": "Bus 04 – Long Biên – Bệnh viện Nội tiết Trung ương Cơ sở 2",
+    "name": "Bus 04 – Long Biên – Bệnh viện Nội tiết TW CS2",
     "type": "bus",
     "price": 10000,
     "coords": [
@@ -150,7 +150,7 @@ BUS_AND_METRO_ROUTES = [
   },
 
   {
-    "name": "Bus 11 – Công viên Thống Nhất - Học viện Nông nghiệp Việt Nam",
+    "name": "Bus 11 – Công viên Thống Nhất - Học viện Nông nghiệp VN",
     "type": "bus",
     "price": 10000,
     "coords": [

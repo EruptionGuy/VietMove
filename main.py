@@ -384,7 +384,7 @@ def search_routes():
     end_coords = LOCATIONS[end_name]
 
     prepare_routes(start_coords, end_coords)
-    loading_label.configure(text="🚍 Bấm vào các lộ trình để xem đường đi")
+    loading_label.configure(text="Bấm vào các lộ trình để xem đường đi")
 
 ctk.CTkButton(
     sidebar,
@@ -503,9 +503,7 @@ def prepare_routes(start, end):
 
     best_co2 = float("inf")
 
-    # =========================
     # 🚍 DIRECT ROUTES
-    # =========================
     for match in matches:
         route = build_direct_route(start, end, match["routes"][0])
 
@@ -522,17 +520,15 @@ def prepare_routes(start, end):
         ctk.CTkButton(
             routes_panel,
             text=f"{emoji} {route['name']}\n"
-                 f"💰 {route['price']}đ   "
                  f"⏱️ {round(route['time'],1)} phút   "
+                 f"💰 {route['price']} VND\n"
                  f"↔️ {round(route['distance'],1)} km   "
                  f"🏭 {round(route['co2'],2)} kg CO2",
             command=lambda id=route_index: show_bus_and_metro_route(id),
-            anchor="w"
+            anchor="center"
         ).pack(fill="x", pady=6)
 
-    # =========================
     # 🔁 TRANSFER ROUTES
-    # =========================
     transfer_matches = find_routes_with_transfer(start, end)
 
     for match in transfer_matches[:3]:
@@ -650,11 +646,11 @@ def prepare_routes(start, end):
             routes_panel,
             text=f"🔁 {route1['name']}\n→ {route2['name']}\n"
                 f"⏱️ {round(total_time,1)} phút   "
-                f"💰 {total_price}đ   "
+                f"💰 {total_price} VND \n"
                 f"↔️ {round(total_distance,1)} km   "
                 f"🏭 {round(total_co2,2)} kg CO2",
             command=lambda id=route_index: show_bus_and_metro_route(id),
-            anchor="w"
+            anchor="center"
         ).pack(fill="x", pady=6)
    
     car_distance = distance(start, end)
@@ -675,7 +671,7 @@ def prepare_routes(start, end):
             routes_panel,
             text=f"🚶‍♂️ Đi bộ\n⏱️ {round(car_time, 1)} phút   ↔️ {round(car_distance, 1)} km",
             command=show_car_route,
-            anchor="w"
+            anchor="center"
         ).pack(fill="x", pady=6)
     else:
         car_time = estimate_time(car_distance, "car")
@@ -689,17 +685,14 @@ def prepare_routes(start, end):
 
         ctk.CTkButton(
             routes_panel,
-            text=f"🚗 Ôtô\n↔️"
+            text=f"🚗 Ô tô\n"
                 f"⏱️ {round(car_time,1)} phút   "
-                f"{round(car_distance,1)} km   "
+                f"↔️ {round(car_distance,1)} km   "
                 f"🏭 {round(car_co2,2)} kg CO2",
             command=show_car_route,
-            anchor="w"
+            anchor="center"
         ).pack(fill="x", pady=6)
 
-    # =========================
-    # 🌱 ECO MESSAGE
-    # =========================
     if best_co2 < float("inf"):
         update_eco_message(best_co2, car_co2)
 
