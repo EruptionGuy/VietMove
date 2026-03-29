@@ -168,7 +168,7 @@ def get_cached_path(start, end, mode):
     if key in path_cache:
         return path_cache[key]
 
-    # ✅ use precomputed for bus segments
+    # Use precomputed routes to reduce API requests
     if mode == "driving":
         key_str = f"{format_coord(start)}-{format_coord(end)}"
         reverse_key_str = f"{format_coord(end)}-{format_coord(start)}"
@@ -550,21 +550,18 @@ def prepare_routes(start, end):
         part1 = coords1[match["start_idx"]:match["transfer_idx1"] + 1]
         part2 = coords2[match["transfer_idx2"]:match["end_idx"] + 1]
 
-        transfer_point = part1[-1]  # same as part2[0]
+        transfer_point = part1[-1]
 
         walk_start = distance(start, part1[0])
         walk_transfer = distance(part1[-1], part2[0])
         walk_end = distance(part2[-1], end)
 
-        # ❌ Too far to first stop
         if walk_start > 0.8:
             continue
 
-        # ❌ Transfer too far
         if walk_transfer > 0.8:
             continue
 
-        # ❌ Too far after last stop
         if walk_end > 0.8:
             continue
 
