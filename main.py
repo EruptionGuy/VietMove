@@ -1,11 +1,13 @@
 import os
+import json
+import random
 import customtkinter as ctk
 from tkintermapview import TkinterMapView
 from PIL import ImageTk, Image
 from geopy.geocoders import Nominatim
 import requests
 
-from bus_routes import find_matching_bus_and_metro_routes, distance
+from bus_routes import find_matching_bus_and_metro_routes, distance, BUS_AND_METRO_ROUTES
 
 # APP APPEARANCE
 ctk.set_appearance_mode("dark")
@@ -29,8 +31,15 @@ start_marker = None
 end_marker = None
 board_marker = None
 alight_marker = None
+transfer_marker = None
 
 path_cache = {}
+
+try:
+    with open("precomputed_routes.json", "r") as f:
+        PRECOMPUTED = json.load(f)
+except:
+    PRECOMPUTED = {}
 
 WALK_SPEED = 5 # km/h
 CAR_SPEED = 25 # km/h
@@ -127,11 +136,14 @@ LOCATIONS = {
 
 
 # HELPER FUNCTIONS
+def format_coord(coord):
+    return f"{coord[0]:.6f},{coord[1]:.6f}"
+
 def fetch_path(start, end, mode):
     """
     Get a path from OpenStreetMap routing (OSRM)
     """
-    url = f"https://router.project-osrm.org/route/v1/{mode}/{start[1]},{start[0]};{end[1]},{end[0]}?overview=full&geometries=geojson"
+    url = f"http://router.project-osrm.org/route/v1/{mode}/{start[1]},{start[0]};{end[1]},{end[0]}?overview=full&geometries=geojson"
 
     response = requests.get(url, timeout=10)
     response.raise_for_status()
@@ -153,9 +165,28 @@ def get_cached_path(start, end, mode):
     """
     key = (tuple(start), tuple(end), mode)
 
-    if key not in path_cache:
-        path_cache[key] = fetch_path(start, end, mode)
+    if key in path_cache:
+        return path_cache[key]
 
+    # ✅ use precomputed for bus segments
+    if mode == "driving":
+        key_str = f"{format_coord(start)}-{format_coord(end)}"
+        reverse_key_str = f"{format_coord(end)}-{format_coord(start)}"
+
+        if key_str in PRECOMPUTED:
+            path_cache[key] = PRECOMPUTED[key_str]
+            print("✅ Found precomputed route")
+            return path_cache[key]
+
+        elif reverse_key_str in PRECOMPUTED:
+            path_cache[key] = list(reversed(PRECOMPUTED[reverse_key_str]))
+            print("✅ Found precomputed route (reversed)")
+            return path_cache[key]
+
+        print("❌ Couldn't find precomputed route")
+
+    # fallback to OSRM
+    path_cache[key] = fetch_path(start, end, mode)
     return path_cache[key]
 
 
@@ -176,6 +207,61 @@ def find_closest_stop_index(point, stops):
             closest_index = i
 
     return closest_index
+
+def find_transfer(route1, route2, max_dist=0.3):
+    """
+    Find a transfer point between two routes (shared or nearby stops)
+    """
+    for i, a in enumerate(route1["coords"]):
+        for j, b in enumerate(route2["coords"]):
+            if distance(a, b) < max_dist:
+                return i, j  # indices in both routes
+
+    return None
+
+def find_routes_with_transfer(start, end):
+    results = []
+
+    for route1 in BUS_AND_METRO_ROUTES:
+        for route2 in BUS_AND_METRO_ROUTES:
+
+            # Skip same route
+            if route1 == route2:
+                continue
+
+            transfer = find_transfer(route1, route2)
+            if not transfer:
+                continue
+
+            i1, i2 = transfer
+
+            # Find closest stops
+            start_idx = find_closest_stop_index(start, route1["coords"])
+            end_idx = find_closest_stop_index(end, route2["coords"])
+
+            # Ensure valid direction
+            # Must move forward on both routes
+            if start_idx >= i1 or i2 >= end_idx:
+                continue
+
+            # Limit how far along the route we go before transfer
+            if (i1 - start_idx) > 15:
+                continue
+
+            # Limit how far after transfer to destination
+            if (end_idx - i2) > 15:
+                continue
+
+            results.append({
+                "route1": route1,
+                "route2": route2,
+                "start_idx": start_idx,
+                "transfer_idx1": i1,
+                "transfer_idx2": i2,
+                "end_idx": end_idx
+            })
+
+    return results
 
 def estimate_time(distance, mode):
     if mode == "walk":
@@ -308,137 +394,276 @@ ctk.CTkButton(
 ).pack(padx=20, pady=16, fill="x")
 
 
+def build_direct_route(start, end, bus_and_metro):
+    """
+    Build ONE direct route (simplified)
+    """
+    coords = bus_and_metro["coords"]
+
+    start_index = find_closest_stop_index(start, coords)
+    end_index = find_closest_stop_index(end, coords)
+
+    # Skip useless route
+    if start_index == end_index:
+        return None
+
+    # Ensure correct direction
+    if start_index > end_index:
+        coords = list(reversed(coords[end_index:start_index + 1]))
+    else:
+        coords = coords[start_index:end_index + 1]
+
+    board = coords[0]
+    alight = coords[-1]
+
+    segments = []
+    total_distance = 0
+    total_time = 0
+    total_co2 = 0
+
+    if distance(start, board) > 0.8:  # 800m max
+        return None
+
+    # Walk to bus stop
+    segments.append({
+        "path": get_cached_path(start, board, "foot"),
+        "color": "#888",
+        "width": 3
+    })
+    total_distance += distance(start, board)
+    total_time += estimate_time(distance(start, board), "walk")
+
+    # Bus/metro segment
+    route_color = BUS_AND_METRO_ROUTE_COLORS[random.randint(0, len(BUS_AND_METRO_ROUTE_COLORS)-1)]
+    for i in range(len(coords) - 1):
+        a = coords[i]
+        b = coords[i + 1]
+
+        d = distance(a, b)
+        total_distance += d
+        total_time += estimate_time(d, bus_and_metro["type"])
+        total_co2 += estimate_co2(d, bus_and_metro["type"])
+
+        segments.append({
+            "path": get_cached_path(a, b, "driving"),
+            "color": route_color,
+            "width": 5
+        })
+
+    # Reject if walking too far after getting off
+    if distance(alight, end) > 0.8:
+        return None
+
+    # Walk to destination
+    segments.append({
+        "path": get_cached_path(alight, end, "foot"),
+        "color": "#888",
+        "width": 3
+    })
+    total_distance += distance(alight, end)
+    total_time += estimate_time(distance(alight, end), "walk")
+
+    return {
+        "segments": segments,
+        "board": board,
+        "alight": alight,
+        "distance": total_distance,
+        "time": total_time,
+        "co2": total_co2,
+        "name": bus_and_metro["name"],
+        "type": bus_and_metro["type"],
+        "price": int(bus_and_metro["price"])
+    }
+
 # ROUTE BUILDING
 def prepare_routes(start, end):
     """
-    Build all possible routes
+    Build all possible routes (simplified)
     """
-    global start_position, end_position, start_marker, end_marker, car_route
+    global start_marker, end_marker, car_route
 
-    # path_cache.clear()
+    path_cache.clear()
     all_bus_and_metro_routes.clear()
-
-    start_position = start
-    end_position = end
 
     map_widget.delete_all_path()
 
     for widget in routes_panel.winfo_children():
         widget.destroy()
 
+    # Markers
     if start_marker:
         start_marker.delete()
     if end_marker:
         end_marker.delete()
 
-    start_marker = map_widget.set_marker(*start, text="📍 Start")
-    end_marker = map_widget.set_marker(*end, text="🏁 Destination")
+    start_marker = map_widget.set_marker(*start, text="📍 Điểm đi")
+    end_marker = map_widget.set_marker(*end, text="🏁 Điểm đến")
 
     matches = find_matching_bus_and_metro_routes(start, end)
 
-    # Bus and metro routes
     best_co2 = float("inf")
 
-    for i, match in enumerate(matches):
-        bus_and_metro = match["routes"][0]
+    # =========================
+    # 🚍 DIRECT ROUTES
+    # =========================
+    for match in matches:
+        route = build_direct_route(start, end, match["routes"][0])
 
-        color_index = i
-        while color_index >= len(BUS_AND_METRO_ROUTE_COLORS):
-            color_index = color_index - len(BUS_AND_METRO_ROUTE_COLORS)
-
-        bus_and_metro_color = BUS_AND_METRO_ROUTE_COLORS[color_index]
-        walk_color = WALK_ROUTE_COLORS[color_index]
-
-        start_index = find_closest_stop_index(start, bus_and_metro["coords"])
-        end_index = find_closest_stop_index(end, bus_and_metro["coords"])
-
-        if start_index == end_index:  # If closest start stop is the same as closest end stop, skip this route
+        if not route:
             continue
 
-        if start_index > end_index:  # Direction check
-            start_index, end_index = end_index, start_index
-            bus_and_metro_coords = list(
-                reversed(bus_and_metro["coords"][start_index:end_index + 1])
-            )  # Reverse the stops' orders if the passenger travels backwards
-        else:
-            bus_and_metro_coords = bus_and_metro["coords"][start_index:end_index + 1]
+        best_co2 = min(best_co2, route["co2"])
 
-        board = bus_and_metro_coords[0]   # The station where you get on the bus/metro
-        alight = bus_and_metro_coords[-1] # The station where you leave the bus/metro
+        all_bus_and_metro_routes.append(route)
+        route_index = len(all_bus_and_metro_routes) - 1
 
+        emoji = "🚍" if route["type"] == "bus" else "🚇"
+
+        ctk.CTkButton(
+            routes_panel,
+            text=f"{emoji} {route['name']}\n"
+                 f"💰 {route['price']}đ   "
+                 f"⏱️ {round(route['time'],1)} phút   "
+                 f"↔️ {round(route['distance'],1)} km   "
+                 f"🏭 {round(route['co2'],2)} kg CO2",
+            command=lambda id=route_index: show_bus_and_metro_route(id),
+            anchor="w"
+        ).pack(fill="x", pady=6)
+
+    # =========================
+    # 🔁 TRANSFER ROUTES
+    # =========================
+    transfer_matches = find_routes_with_transfer(start, end)
+
+    for match in transfer_matches[:3]:
         total_distance = 0
         total_time = 0
         total_co2 = 0
+        total_price = 0
+
+        route1 = match["route1"]
+        route2 = match["route2"]
+
+        coords1 = route1["coords"]
+        coords2 = route2["coords"]
+
+        part1 = coords1[match["start_idx"]:match["transfer_idx1"] + 1]
+        part2 = coords2[match["transfer_idx2"]:match["end_idx"] + 1]
+
+        transfer_point = part1[-1]  # same as part2[0]
+
+        walk_start = distance(start, part1[0])
+        walk_transfer = distance(part1[-1], part2[0])
+        walk_end = distance(part2[-1], end)
+
+        # ❌ Too far to first stop
+        if walk_start > 0.8:
+            continue
+
+        # ❌ Transfer too far
+        if walk_transfer > 0.8:
+            continue
+
+        # ❌ Too far after last stop
+        if walk_end > 0.8:
+            continue
 
         segments = []
 
-        segments.append({  # Path from your starting point to boarding station
-            "path": get_cached_path(start, board, "foot"),
-            "color": walk_color,
+        # Walk to first route
+        segments.append({
+            "path": get_cached_path(start, part1[0], "foot"),
+            "color": "#888",
             "width": 3
         })
-        total_distance += distance(start, board)
-        total_time += estimate_time(distance(start, board), "walk")
 
-        for i in range(len(bus_and_metro_coords) - 1):  # For each pair of adjacent bus/metro stops
-            a = bus_and_metro_coords[i]
-            b = bus_and_metro_coords[i + 1]
+        total_distance += walk_start
+        total_time += estimate_time(walk_start, "walk")
+
+        # First route
+        for i in range(len(part1) - 1):
+            a = part1[i]
+            b = part1[i + 1]
 
             d = distance(a, b)
             total_distance += d
-            total_time += estimate_time(d, bus_and_metro["type"])
-            total_co2 += estimate_co2(d, bus_and_metro["type"])
+            total_time += estimate_time(d, route1["type"])
+            total_co2 += estimate_co2(d, route1["type"])
 
-            if bus_and_metro["type"] == "bus":
-                segments.append({
-                    "path": get_cached_path(a, b, "driving"),
-                    "color": bus_and_metro_color,
-                    "width": 5
-                })
-            elif bus_and_metro["type"] == "metro":
-                segments.append({
-                    "path": [a, b],  # Draw straight paths between metro stations since OSRM does not support 'metro' mode
-                    "color": bus_and_metro_color,
-                    "width": 5
-                })
+            segments.append({
+                "path": get_cached_path(a, b, "driving"),
+                "color": "#3498db",
+                "width": 5
+            })
 
-        segments.append({  # Path from leaving station to your destination
-            "path": get_cached_path(alight, end, "foot"),
-            "color": walk_color,
+        total_price += route1["price"]
+
+        # Transfer walk
+        segments.append({
+            "path": get_cached_path(part1[-1], part2[0], "foot"),
+            "color": "#aaaaaa",
             "width": 3
         })
-        total_distance += distance(alight, end)
-        total_time += estimate_time(distance(alight, end), "walk")
 
-        # Update best CO2
-        best_co2 = min(best_co2, total_co2)
+        total_distance += walk_transfer
+        total_time += estimate_time(walk_transfer, "walk")
 
-        all_bus_and_metro_routes.append({  # Connect all the paths' segments together
+        # Second route
+        for i in range(len(part2) - 1):
+            a = part2[i]
+            b = part2[i + 1]
+
+            d = distance(a, b)
+            total_distance += d
+            total_time += estimate_time(d, route2["type"])
+            total_co2 += estimate_co2(d, route2["type"])
+
+            segments.append({
+                "path": get_cached_path(a, b, "driving"),
+                "color": "#e67e22",
+                "width": 5
+            })
+
+        total_price += route2["price"]
+
+        # Walk to destination
+        segments.append({
+            "path": get_cached_path(part2[-1], end, "foot"),
+            "color": "#888",
+            "width": 3
+        })
+
+        total_distance += walk_end
+        total_time += estimate_time(walk_end, "walk")
+
+        all_bus_and_metro_routes.append({
             "segments": segments,
-            "board": board,
-            "alight": alight
+            "board": part1[0],
+            "transfer": transfer_point,
+            "alight": part2[-1],
+            "distance": total_distance,
+            "time": total_time,
+            "co2": total_co2,
+            "price": total_price
         })
 
         route_index = len(all_bus_and_metro_routes) - 1
 
-        emoji = "🚍" if bus_and_metro["type"] == "bus" else "🚇"
         ctk.CTkButton(
             routes_panel,
-            text=f"{emoji} {bus_and_metro['name']}\n"
-                f"⏱️ {round(total_time, 1)} phút   "
-                f"💰 {bus_and_metro['price']}   "
-                f"↔️ {round(total_distance, 1)} km   "
-                f"🏭 {round(total_co2, 2)} kg CO2",
+            text=f"🔁 {route1['name']}\n→ {route2['name']}\n"
+                f"⏱️ {round(total_time,1)} phút   "
+                f"💰 {total_price}đ   "
+                f"↔️ {round(total_distance,1)} km   "
+                f"🏭 {round(total_co2,2)} kg CO2",
             command=lambda id=route_index: show_bus_and_metro_route(id),
-            anchor="w",
-            height=54
+            anchor="w"
         ).pack(fill="x", pady=6)
-
-    # Driving or walking (if start and destination are close together)
+   
     car_distance = distance(start, end)
     car_co2 = estimate_co2(car_distance, "car")
 
-    if car_distance < 3:
+    if car_distance < 2:
         car_time = estimate_time(car_distance, "walk")
 
         car_route = {
@@ -457,7 +682,6 @@ def prepare_routes(start, end):
         ).pack(fill="x", pady=6)
     else:
         car_time = estimate_time(car_distance, "car")
-
         car_route = {
             "segments": [{
                 "path": get_cached_path(start, end, "driving"),
@@ -468,32 +692,27 @@ def prepare_routes(start, end):
 
         ctk.CTkButton(
             routes_panel,
-            text=f"🚗 Ôtô\n⏱️ {round(car_time, 1)} phút   ↔️ {round(car_distance, 1)} km   "
-                f"🏭 {round(car_co2, 2)} kg CO2",
+            text=f"🚗 Ôtô\n↔️"
+                f"⏱️ {round(car_time,1)} phút   "
+                f"{round(car_distance,1)} km   "
+                f"🏭 {round(car_co2,2)} kg CO2",
             command=show_car_route,
             anchor="w"
         ).pack(fill="x", pady=6)
 
-    # Environmental message
+    # =========================
+    # 🌱 ECO MESSAGE
+    # =========================
     if best_co2 < float("inf"):
         update_eco_message(best_co2, car_co2)
-    else:
-        eco_label.configure(
-            text="🌍 Xe buýt giúp giảm ùn tắc và phát thải.\nHãy chọn giao thông công cộng khi có thể."
-        )
 
-    # Fit bounding box
+    # map view
     map_widget.set_position(start[0], start[1])
     map_widget.set_zoom(15)
 
-
-
 # DISPLAY ROUTE ON MAP
 def show_bus_and_metro_route(index):
-    """
-    Draw selected route on map
-    """
-    global board_marker, alight_marker
+    global board_marker, alight_marker, transfer_marker
 
     map_widget.delete_all_path()
 
@@ -501,6 +720,8 @@ def show_bus_and_metro_route(index):
         board_marker.delete()
     if alight_marker:
         alight_marker.delete()
+    if transfer_marker:
+        transfer_marker.delete()
 
     route = all_bus_and_metro_routes[index]
 
@@ -513,7 +734,7 @@ def show_bus_and_metro_route(index):
                 color=segment["color"]
             )
 
-    # Draw bus/metro paths second
+    # Draw bus/metro paths
     for segment in route["segments"]:
         if segment["width"] == 5:
             map_widget.set_path(
@@ -522,9 +743,17 @@ def show_bus_and_metro_route(index):
                 color=segment["color"]
             )
 
+    # Markers
     if "board" in route:
         board_marker = map_widget.set_marker(*route["board"], text="🟢 Lên xe")
         alight_marker = map_widget.set_marker(*route["alight"], text="🔴 Xuống xe")
+
+    # ✅ Transfer marker
+    if "transfer" in route:
+        transfer_marker = map_widget.set_marker(
+            *route["transfer"],
+            text="🔄 Chuyển tuyến"
+        )
 
 def show_car_route():
     """

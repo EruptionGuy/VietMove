@@ -25,7 +25,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 01 – Bến xe Gia Lâm - Bến xe Yên Nghĩa",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.048372, 105.878294],  # Bến xe Gia Lâm
       [21.049693, 105.883499],  # 549 Nguyễn Văn Cừ
@@ -70,7 +70,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 02 – Bác Cổ - Bến xe Yên Nghĩa",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.023586, 105.860681],  # Bác Cổ
       [21.022202, 105.861229],  # Trạm trung chuyển Trần Khánh Dư
@@ -115,7 +115,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 04 – Long Biên – Bệnh viện Nội tiết Trung ương Cơ sở 2",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.041424, 105.849237],  # Điểm trung chuyển Long Biên (E3.4)
       [21.033314, 105.854407],  # Ngã 4 Nguyễn Hữu Huân - Hàng Mắm
@@ -152,7 +152,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 11 – Công viên Thống Nhất - Học viện Nông nghiệp Việt Nam",
     "type": "bus",
-    "price": "10.000",
+    "price": 10000,
     "coords": [
       [21.017162, 105.845215],  # CV Thống Nhất - Trần Nhân Tông
       [21.018203, 105.847430],  # 55 Quang Trung
@@ -186,7 +186,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 12 – Công viên Nghĩa Đô - Khánh Hà (Thường Tín)",
     "type": "bus",
-    "price": "10.000",
+    "price": 10000,
     "coords": [
       [21.037202, 105.801409],  # Đại học Thủ đô Hà Nội
       [21.035403, 105.803618],  # Cầu Dịch Vọng
@@ -231,7 +231,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 24 – Long Biên - Ngã Tư Sở - Cầu Giấy",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.041222, 105.849512],  # Điểm trung chuyển Long Biên (E3.2)
       [21.032003, 105.856109],  # 162 Trần Quang Khải
@@ -265,7 +265,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 31 – Bách Khoa - Chèm",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.006728, 105.845035],  # Đại học Bách Khoa
       [21.002739, 105.847565],  # Sân vận động Bách Khoa, Lê Thanh Nghị
@@ -309,7 +309,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 38 – Tân Xuân – Mai Động",
     "type": "bus",
-    "price": "12.000đ",
+    "price": 12000,
     "coords": [
       [21.087109, 105.785319],  # Tân Xuân
       [21.086798, 105.785282],  # Trường trung cấp nghề Thăng Long
@@ -354,7 +354,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 49 – Trần Khánh Dư - Nhổn",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.022200, 105.861217],  # Trạm trung chuyển Trần Khánh Dư (Đảo đón khách)
       [21.018528, 105.860709],  # Đối diện Bệnh Viện Trung ương Quân đội 108 - Trần Hưng Đạo
@@ -394,7 +394,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Bus 55 – TTTM Aeon Mall Long Biên - Cầu Giấy",
     "type": "bus",
-    "price": "10.000đ",
+    "price": 10000,
     "coords": [
       [21.025573, 105.900174],  # TTTM Aeon Mall Long Biên
       [21.028232, 105.892775],  # Đối diện ngõ 110 Cổ Linh
@@ -434,7 +434,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "BRT 01 – Kim Mã – Yên Nghĩa",
     "type": "bus",
-    "price": "8.000đ",
+    "price": 8000,
     "coords": [
       [20.949605, 105.747615],  # Bến Xe Yên Nghĩa
       [20.956874, 105.757852],  # Nhà chờ Ba La
@@ -465,7 +465,7 @@ BUS_AND_METRO_ROUTES = [
   {
     "name": "Metro 2A – Cát Linh - Hà Đông",
     "type": "metro",
-    "price": "19.000đ",
+    "price": 19000,
     "coords": [
       [21.028355, 105.827262], # Cát Linh
       [21.020154, 105.825349], # La Thành
@@ -485,7 +485,7 @@ BUS_AND_METRO_ROUTES = [
   {
       "name": "Metro 3 – Nhổn - Ga Hà Nội",
       "type": "metro",
-      "price": "15.000đ",
+      "price": 15000,
       "coords": [
       [21.0528834, 105.7348198], # Nhổn
       [21.0480071, 105.7447279], # Minh Khai
